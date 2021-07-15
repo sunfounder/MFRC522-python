@@ -20,8 +20,11 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with MFRC522-Python.  If not, see <http://www.gnu.org/licenses/>.
 #
+# Edit by SunFounder
+#  - Change SPI library to https://github.com/lthiery/SPI-Py
+
 import RPi.GPIO as GPIO
-import spidev
+import spi
 import signal
 import time
 import logging
@@ -126,9 +129,10 @@ class MFRC522:
     serNum = []
 
     def __init__(self, bus=0, device=0, spd=1000000, pin_mode=10, pin_rst=-1, debugLevel='WARNING'):
-        self.spi = spidev.SpiDev()
-        self.spi.open(bus, device)
-        self.spi.max_speed_hz = spd
+        self.spi = spi.openSPI(device="/dev/spidev%s.%s" % bus, device)
+        # self.spi = spidev.SpiDev()
+        # self.spi.open(bus, device)
+        # self.spi.max_speed_hz = spd
 
         self.logger = logging.getLogger('mfrc522Logger')
         self.logger.addHandler(logging.StreamHandler())
@@ -156,14 +160,17 @@ class MFRC522:
         self.Write_MFRC522(self.CommandReg, self.PCD_RESETPHASE)
 
     def Write_MFRC522(self, addr, val):
-        val = self.spi.xfer2([(addr << 1) & 0x7E, val])
+        # val = self.spi.xfer2([(addr << 1) & 0x7E, val])
+        val = spi.transfer(self.spi, tuple([(addr << 1) & 0x7E, val]))
 
     def Read_MFRC522(self, addr):
-        val = self.spi.xfer2([((addr << 1) & 0x7E) | 0x80, 0])
+        # val = self.spi.xfer2([((addr << 1) & 0x7E) | 0x80, 0])
+        val = spi.transfer(self.spi, tuple([((addr << 1) & 0x7E) | 0x80, 0]))
         return val[1]
 
     def Close_MFRC522(self):
-        self.spi.close()
+        # self.spi.close()
+        spi.closeSPI(self.spi)
         GPIO.cleanup()
 
     def SetBitMask(self, reg, mask):
